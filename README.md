@@ -3,11 +3,7 @@
 <!-- Table of contents -->
 - [Introduction](#Introduction)
 - [Objectives](#objectives)
-- [Requirements](#requirements)
 - [Usage](#usage)
-  - [Ethereum](#docker-compose)
-  - [Install-Sandbox](#Install-Sandbox)
-  - [Install-SDK](#Install-SDK)
 - [Contrbutor](#contrbutor)
 
 ## Introduction to Business Idea
@@ -18,12 +14,6 @@ If, at any point, the GPS sensor indicates that an employee is outside the range
 
 ## Objectives
 TThe objective is to produce an Ethereum based dApp that has both the smart contract tested and deployed in a testnet and a front end that will allow monitoring of the status. To achieve this goal we are going to setup tool chains to build and deploy Ethereum based smart contracts, program in solidity using Brownie or Hardhat, and test and debug smart contracts.
-
-## Requirements
-Brownie/Hardhat/Truffle
-Ethereum testnet: Goerli
-Remix IDE
-Etherscan
 
 ## Usage
 ### Remix IDE
