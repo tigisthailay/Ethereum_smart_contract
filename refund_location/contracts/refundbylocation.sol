@@ -1,125 +1,144 @@
-pragma solidity >=0.4.22 <0.9.0;
-import "@openzeppelin/contracts/utils/Strings.sol";
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.0;
 
-contract Refundbylocation {
-    // Model a Candidate
+contract Employer {
 
-    event CompletedEvent (
-        address employeeaddress
-    );
+    event Deposit(address sender, uint amount, uint balance);
+    event Withdraw(uint amount, uint balance);
+    event Transfer(address to, uint amount, uint balance);
+    // Payable constructor can receive Ether
 
-    event FailedEvent (
-        address employeeaddress
-    );
-    // employee data
-    struct Employee {
-        uint id;
-        string name;
-        address public_address;
+    address payable public owner;
+    address payable public _to;
+
+    constructor() payable {
+        owner = payable(msg.sender);
     }
 
-    //employer data
-    struct Employer {
-        uint id;
-        string name;
-        address public_address;
+    struct Parameter {
+        string empName;
+        string long; // these value is set by the employer
+        string lat;  // these value is set by the employer
+        string requiredDistance; // these value is set by the employer
+        string distance; // the final calculated distance
+        string startHour;
+        string endHour;
+        string fetchedHour; // the time of the hour the employee was at the location
     }
 
-    //contract data with boundary points , durations , completion checkers
-    struct contract_data{
-        uint id;
-        uint minimum_point_long;
-        uint minimum_point_lat;
-        uint maximum_point_long;
-        uint maximum_point_lat;
-        uint starting_time;
-        uint duration;
-        uint gathered_location_count;
-        bool contract_truth;
-        bool completed;
-        Employee employees;
-        Employer employer;
+    struct Output {
+        string status;
     }
     
-    // contracts that have been recorded 
-    mapping(address => contract_data) public contracts;
+    mapping (address => Parameter) employees;
+    mapping (address => Output) outputs;
+
+    address[] public employeeAccts;
+
+    function setEmployee(address _address, string memory _empName, string memory _long, string memory _lat, string memory _requiredDistance, string memory _startHour, string memory _endHour) public {
+      
+        require(msg.sender == owner);
+        employees[_address].empName = _empName;
+        employees[_address].long = _long;
+        employees[_address].lat = _lat;
+        employees[_address].requiredDistance = _requiredDistance;
+        employees[_address].startHour = _startHour;
+        employees[_address].endHour = _endHour;
+        employeeAccts.push(_address);
+    }
+
+    function getAllEmployees() view public returns (address[] memory) {
+        return employeeAccts;
+    }
+
+    function getEmployee(address _address) public view returns (string memory, string memory, string memory, string memory, string memory, string memory) {
+        return (employees[_address].empName, employees[_address].long, employees[_address].lat, employees[_address].startHour, employees[_address].endHour, employees[_address].requiredDistance);
+    }
+
+    function countEmployees() view public returns (uint) {
+        return employeeAccts.length;
+    }
+
+    function getResults(address _address) external view returns (Output memory) {
+        return (outputs[_address]);
+    }
+
+    function contractCondition(address _address, string memory distance, string memory fetchedHour) public {
     
-    uint public Contractcount;
+        string memory result = setContract(_address, distance, fetchedHour);
+        if(keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked('Approved'))){
+           
+            outputs[_address].status = 'Accepted!!!';
+            uint256 _amount = 88270000000000;
+            _to = payable(_address);
+            transfer(_to, _amount);
 
-    // Employees that have been recorded
-    mapping(address => Employee) public employees;
+        } else if(keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked('Out of compliance'))){
+           
+           outputs[_address].status = 'Out of compliance';
 
-    mapping (uint => address) public employee_mapping;
- 
-    uint public Employeecount;
-
-    // employer that have been recorded
-    mapping(address => Employer) public employers;
-    uint public Employercount;
-
-    function  initialize_employers(address[] memory a) public {
-        for (uint add=0 ; add < a.length; add++){
-            addEmployer(string.concat("Employer " , Strings.toString(add)) , a[add]);
-            }
-        // addEmployee("Employee 1" , a[1]);
-    }
-    function  initialize_employees(address[] memory a) public{
-        // addEmployer("Employer 1" , a[0]);
-         for (uint add=0 ; add < a.length; add++){
-            addEmployee(string.concat("Employee " , Strings.toString(add)) , a[add]);
-            }
-    }
-
-    function addEmployer (string memory _name , address user_address) private {
-        Employercount ++;
-        employers[user_address] = Employer(Employercount, _name, user_address);
-    }
-    function addEmployee (string memory _name , address user_address) private {
-        Employeecount ++;
-        employees[user_address] = Employee(Employeecount, _name, user_address);
-    }
-
-    function Create_contract_data( uint[2] memory minimum_points, uint[2] memory maximum_points, uint duration, string memory employee_name , address employee_address, address employer_address) public{
-        if (! (employees[employee_address].id > 0)){
-            addEmployee(employee_name, employee_address);
-            employee_mapping[Employeecount] = employee_address;
-         }
-        Contractcount++;
-        contracts[employee_address] = contract_data(Contractcount, minimum_points[0] , minimum_points[1] ,maximum_points[0] , maximum_points [1], block.timestamp ,duration , 0 ,true , false ,employees[employee_address],employers[employer_address]);
-    }
-
-    function get_location( uint  longitude, uint  latitude) public  returns (bool){
-        
-        contract_data memory found_contract = contracts[msg.sender];
-        if (found_contract.id > 0){
-        if ( found_contract.completed != true){
-            uint duration = (block.timestamp - found_contract.starting_time) / 60 ;
-            if (duration < found_contract.duration){ 
-                found_contract.gathered_location_count = found_contract.gathered_location_count + 1;
-                if (! (found_contract.minimum_point_long <= longitude && found_contract.maximum_point_long >= longitude && found_contract.minimum_point_lat <= latitude && found_contract.maximum_point_lat >= latitude) ){
-                    found_contract.contract_truth = false;
-                }
-            }else if ( duration >=found_contract.duration){
-                check_completion(found_contract);
-               
-            }
+        } else if(keccak256(abi.encodePacked(result)) == keccak256(abi.encodePacked('Time is up'))){
+            
+           outputs[_address].status = 'Time is up!';
         }
-            return true;
-            }else{
-                return false;
-            }
     }
 
-    function check_completion(contract_data memory found_contract) private{
-        uint minimum_check = found_contract.duration * 3 / 4 ;
-        if (found_contract.contract_truth && minimum_check <= found_contract.gathered_location_count){
-                    found_contract.completed = true;
-                    emit CompletedEvent(found_contract.employees.public_address);
-                }
-                else{
-                    found_contract.completed = false;
-                    emit FailedEvent(found_contract.employees.public_address);
-                }
+    function stnum(string memory numString) public pure returns(uint) {
+       
+        uint  val=0;
+        bytes   memory stringBytes = bytes(numString);
+        for (uint  i =  0; i<stringBytes.length; i++) {
+            uint exp = stringBytes.length - i;
+            bytes1 ival = stringBytes[i];
+            uint8 uval = uint8(ival);
+           uint jval = uval - uint(0x30);
+   
+           val +=  (uint(jval) * (10**(exp-1))); 
+        }
+        return val;
+    }
+
+    function setContract(address _address,string memory distance, string memory fetchedHour) public view returns (string memory) {
+       
+        uint dist = stnum(distance);
+        uint hour = stnum(fetchedHour);
+        uint start = stnum(employees[_address].startHour);
+        uint end = stnum(employees[_address].endHour);
+        uint reqdist = stnum(employees[_address].requiredDistance);
+           
+        //require(end >= hour && hour >= start, "out of time");
+        if(end >= hour && hour >= start){
+            if(reqdist >= dist){
+                return 'Approved';
+            }
+            else {
+                return 'Out of compliance';
+            }
+        } 
+        else {
+            return 'Time is up';
+        }
+    }
+
+    function deposit() public payable {
+        emit Deposit(msg.sender, msg.value, address(this).balance);
+    }
+
+    function notPayable() public {}
+    
+    // modifier onlyOwner() {
+    //     require(msg.sender == owner, "Not owner");
+    //     _;
+    // }
+
+    // Function to transfer Ether from this contract to address from input
+    function transfer(address payable _too, uint _amount) public {
+        _too.transfer(_amount);
+        emit Transfer(_too, _amount, address(this).balance);
+    }
+
+    function getBalance () public view returns (uint) {
+        return address(this).balance;
     }
 
 }

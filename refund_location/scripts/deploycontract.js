@@ -1,5 +1,20 @@
-const Refundbylocation = artifacts.require("Refundbylocation");
+const main = async () => {
+  const locationFactory = await hre.ethers.getContractFactory("Employer");
+  const locationContract = await locationFactory.deploy();
 
-module.exports = function (deployer,network, accounts) {
-  deployer.deploy(Refundbylocation , [accounts[0],accounts[1]]);
+  await locationContract.deployed();
+
+  console.log("Transactions deployed to: ", locationContract.address);
 };
+
+const runMain = async () => {
+  try {
+    await main();
+    process.exit(0);
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
+};
+
+runMain();

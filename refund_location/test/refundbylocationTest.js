@@ -1,36 +1,33 @@
-var Refundbylocation = artifacts.require("Refundbylocation.sol");
+const { expect } = require('chai');
 
-contract("Refundbylocation", function(accounts) {
-  var refundInstance;
+var chai = require('chai');
 
-  it("initializes with two people", function() {
-    return Refundbylocation.deployed().then(function(instance) {
-      refundInstance = instance;
-      return refundInstance.initialize_employers([accounts[4],accounts[5],accounts[6]])
-    }).then(function(initialized, count) {
-        console.log("IIIIIIIOOOOOOOOOOOO")
-      return refundInstance.employers(accounts[4]);
-   }).then(function(employers) {
-      console.log("serdfcgvhbjncgvbncgvbngvhb")
-      console.log(employers)
-      console.log(accounts[4])
-      return refundInstance.Create_contract_data([878474,3067564],[4882834,325644664], 30 , 'First Contract employee' , accounts[3] , accounts[4])
-    }).then(function(firstcontract) {
-      console.log("serdfcgvhbjncgvbncgvbngvhb")
-      console.log(firstcontract)
-      return refundInstance.Create_contract_data([878474,3067564],[4882834,325644664], 30 , 'Second Contract employee' , accounts[3] , accounts[4])
-    }).then(function(contract) {
-      console.log("contarscdggdhfjfjferferfef")
-      console.log(accounts[4])
-      return refundInstance.Contractcount()
-  }).then(function(data) {
-    console.log("rtririeiieiee")
-    console.log(data)
-    return refundInstance.contracts(accounts[3])
-  }).then(function(contracts) {
-    console.log(contracts)
+describe('Employer Unit Test', function () {
+    before(async function () {
+      Employer = await ethers.getContractFactory('Employer');
+      Employer = await Employer.deploy();
+      await Employer.deployed();
+    });
 
-  })
-})
+    it('storing a value', async function () {
+      await Employer.setEmployee('0x423CDF9E217ccADAe24C0fde562Ac8A897A177B8', 'emp','34.09', '98.43', '20', '3','4');
+    });
 
-})
+    it('get a value', async function () {
+      expect((await Employer.getAllEmployees()).toString()).to.equal('0x423CDF9E217ccADAe24C0fde562Ac8A897A177B8');
+    });
+
+    it('retrieve returns a value previously stored', async function () {
+     expect((await Employer.getEmployee('0x423CDF9E217ccADAe24C0fde562Ac8A897A177B8')).toString()).to.equal('emp,34.09,98.43,3,4,20');
+    }); 
+
+    it('retrieve returns a count of previously stored', async function () {
+      
+       expect((await Employer.countEmployees()).toNumber()).to.equal(1);
+    }); 
+    
+
+    it('calling the contract balance', async function () {
+      expect((await Employer.getBalance()).toNumber()).to.equal(0); 
+    });
+  });
