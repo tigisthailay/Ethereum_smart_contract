@@ -1,149 +1,125 @@
 pragma solidity >=0.4.22 <0.9.0;
-// pragma experimental ABIEncoderV2;
+import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract RefundByLocation{
-    
-    struct Employer{
-        // uint id;
-        string name;
-        address employer_address;
-    }
+contract Refund {
+    // Model a Candidate
 
-    struct Employee{
-        // uint id;
-        string name;
-        address employee_address;
-    }
+    event CompletedEvent (
+        address employeeaddress
+    );
 
-    struct Employee_Location_info{
-        address employee_address;
-        uint contract_id;
-        uint coord_long;
-        uint lng_offset;
-        uint coord_lat;
-        uint lat_offset;
-        uint distance_from_contract_coord;
-        string timestamp;
-        bool status;
-    }
-
-    struct single_contract_info{
+    event FailedEvent (
+        address employeeaddress
+    );
+    // employee data
+    struct Employee {
         uint id;
-        address employee_address;
-        address employer_address;
-        uint coord_long;
-        uint lng_offset;
-        uint coord_lat;
-        uint lat_offset;
-        uint radius;
+        string name;
+        address public_address;
+    }
+
+    //employer data
+    struct Employer {
+        uint id;
+        string name;
+        address public_address;
+    }
+
+    //contract data with boundary points , durations , completion checkers
+    struct contract_data{
+        uint id;
+        uint minimum_point_long;
+        uint minimum_point_lat;
+        uint maximum_point_long;
+        uint maximum_point_lat;
+        uint starting_time;
+        uint duration;
+        uint gathered_location_count;
+        bool contract_truth;
+        bool completed;
+        Employee employees;
+        Employer employer;
     }
     
-    Employee[] public employees;
-    Employer[] public employers;
-    uint public employercount;
-    uint public employeecount;
-
-    single_contract_info[] public contract_infos;
-    uint public contract_info_count;
-
-    Employee_Location_info[] public employee_location_infos;
-    uint public employee_location_infos_count;
-
+    // contracts that have been recorded 
+    mapping(address => contract_data) public contracts;
     
+    uint public Contractcount;
 
-    function init_employer(string memory _name, address a) public{
-        employers.push(Employer(_name,a));
-        employercount ++;
+    // Employees that have been recorded
+    mapping(address => Employee) public employees;
+
+    mapping (uint => address) public employee_mapping;
+ 
+    uint public Employeecount;
+
+    // employer that have been recorded
+    mapping(address => Employer) public employers;
+    uint public Employercount;
+
+    function  initialize_employers(address[] memory a) public {
+        for (uint add=0 ; add < a.length; add++){
+            addEmployer(string.concat("Employer " , Strings.toString(add)) , a[add]);
+            }
+        // addEmployee("Employee 1" , a[1]);
+    }
+    function  initialize_employees(address[] memory a) public{
+        // addEmployer("Employer 1" , a[0]);
+         for (uint add=0 ; add < a.length; add++){
+            addEmployee(string.concat("Employee " , Strings.toString(add)) , a[add]);
+            }
     }
 
-    function init_employee(string memory _name, address a) public{
-        employees.push(Employee(_name, a));
-        employeecount++;
+    function addEmployer (string memory _name , address user_address) private {
+        Employercount ++;
+        employers[user_address] = Employer(Employercount, _name, user_address);
+    }
+    function addEmployee (string memory _name , address user_address) private {
+        Employeecount ++;
+        employees[user_address] = Employee(Employeecount, _name, user_address);
     }
 
-    function create_employee_location_info(uint contract_id, address _employee_address, 
-            uint[2] memory _lat, uint[2] memory _lng,
-            string memory _timestamp, bool _status, uint _distance
-        ) public returns(bool){
-        // single_contract_info memory contract_info = contract_infos[contract_id[0]];
-        // if(contract_info.id > 0){
-        Employee memory emplee;
-        bool is_employee = false;
-        for(uint j=0;j<employeecount;j++){
-            if(employees[j].employee_address == _employee_address){
-                emplee = employees[j];
-                is_employee = true;
-                break;
-            }
-        }
-        if(!is_employee){
-            return false;
-        }
-        else{
-            employee_location_infos.push(
-                Employee_Location_info(
-                    _employee_address,
-                    contract_id,
-                    _lng[0],
-                    _lng[1],
-                    _lat[0],
-                    _lat[1],
-                    _distance,
-                    _timestamp,
-                    _status
-                )
-            );
-            employee_location_infos_count++;
-        }
-        // }
-        // else{
-        //     return false;
-        // }
-        return true;
+    function Create_contract_data( uint[2] memory minimum_points, uint[2] memory maximum_points, uint duration, string memory employee_name , address employee_address, address employer_address) public{
+        if (! (employees[employee_address].id > 0)){
+            addEmployee(employee_name, employee_address);
+            employee_mapping[Employeecount] = employee_address;
+         }
+        Contractcount++;
+        contracts[employee_address] = contract_data(Contractcount, minimum_points[0] , minimum_points[1] ,maximum_points[0] , maximum_points [1], block.timestamp ,duration , 0 ,true , false ,employees[employee_address],employers[employer_address]);
     }
 
-    function create_contract(address _employer_address, address _employee_address, uint[2] memory lat, uint[2] memory lng, uint radius) public returns(bool){
-        Employer memory emplr;
-        bool is_employer = false;
-        for(uint i=0;i<employercount;i++){
-            if (employers[i].employer_address == _employer_address){
-                emplr = employers[i];
-                is_employer = true;
-                break;
-            }
-        }
-        if(!is_employer){
-            return false;
-        }
-        Employee memory emplee;
-        bool is_employee = false;
-        for(uint j=0;j<employeecount;j++){
-            if(employees[j].employee_address == _employee_address){
-                emplee = employees[j];
-                is_employee = true;
-                break;
-            }
-        }
-        if(!is_employee){
-            emplee = Employee("your name", _employee_address);
-            employees.push(emplee);
-            employeecount++;
-
-        }
-        contract_infos.push(
-            single_contract_info(
-                contract_info_count,
-                _employee_address,
-                _employer_address,
-                lng[0],
-                lng[1],
-                lat[0],
-                lat[1],
-                radius
-            )
-        );
-        contract_info_count++;
+    function get_location( uint  longitude, uint  latitude) public  returns (bool){
         
-        return true;
+        contract_data memory found_contract = contracts[msg.sender];
+        if (found_contract.id > 0){
+        if ( found_contract.completed != true){
+            uint duration = (block.timestamp - found_contract.starting_time) / 60 ;
+            if (duration < found_contract.duration){ 
+                found_contract.gathered_location_count = found_contract.gathered_location_count + 1;
+                if (! (found_contract.minimum_point_long <= longitude && found_contract.maximum_point_long >= longitude && found_contract.minimum_point_lat <= latitude && found_contract.maximum_point_lat >= latitude) ){
+                    found_contract.contract_truth = false;
+                }
+            }else if ( duration >=found_contract.duration){
+                check_completion(found_contract);
+               
+            }
+        }
+            return true;
+            }else{
+                return false;
+            }
     }
+
+    function check_completion(contract_data memory found_contract) private{
+        uint minimum_check = found_contract.duration * 3 / 4 ;
+        if (found_contract.contract_truth && minimum_check <= found_contract.gathered_location_count){
+                    found_contract.completed = true;
+                    emit CompletedEvent(found_contract.employees.public_address);
+                }
+                else{
+                    found_contract.completed = false;
+                    emit FailedEvent(found_contract.employees.public_address);
+                }
+    }
+
 }
